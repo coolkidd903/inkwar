@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>INK BATTLE 3D EVOLUTION — ブラウザで遊べるスプラ風3Dシューティング</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Orbitron:wght@700;900&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --y:#e8ff00;--g:#4bff5c;--p:#ff3d6a;--b:#00b0ff;--o:#ff8c00;--v:#c040ff;
+  --dk:#0a0a16;--dkk:#060610;--card:rgba(14,18,8,.92);
+  --font:'Fredoka One','Noto Sans JP',sans-serif;
+  --orb:'Orbitron','Fredoka One',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--dkk);color:#fff;overflow-x:hidden;cursor:none}
+
+/* CURSOR */
+#cur{position:fixed;width:14px;height:14px;border-radius:50%;background:var(--y);pointer-events:none;z-index:99999;transform:translate(-50%,-50%);transition:width .15s,height .15s;mix-blend-mode:difference}
+#cur-ring{position:fixed;width:40px;height:40px;border-radius:50%;border:1.5px solid rgba(232,255,0,.4);pointer-events:none;z-index:99998;transform:translate(-50%,-50%);transition:width .3s,height .3s,border-color .2s}
+#cur.big{width:8px;height:8px}
+#cur-ring.big{width:60px;height:60px;border-color:rgba(232,255,0,.7)}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:800;display:flex;align-items:center;justify-content:space-between;padding:0 40px;height:64px;background:rgba(6,6,16,.75);backdrop-filter:blur(18px);border-bottom:1px solid rgba(232,255,0,.1);transition:background .3s}
+.nav-logo{font-family:var(--orb);font-size:16px;font-weight:900;letter-spacing:3px;color:var(--y);text-shadow:0 0 20px rgba(232,255,0,.5)}
+.nav-cta{display:inline-flex;align-items:center;gap:8px;background:var(--y);color:#1a1a00;font-family:var(--orb);font-size:13px;font-weight:700;letter-spacing:2px;padding:10px 24px;border-radius:999px;border:none;cursor:pointer;text-decoration:none;box-shadow:0 4px 0 #5a6600,0 0 20px rgba(232,255,0,.35);transition:transform .1s,box-shadow .1s}
+.nav-cta:hover{transform:translateY(-2px);box-shadow:0 6px 0 #5a6600,0 0 40px rgba(232,255,0,.55)}
+.nav-cta:active{transform:translateY(3px);box-shadow:0 1px 0 #5a6600}
+
+/* HERO */
+#hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:100px 20px 80px;position:relative;overflow:hidden;text-align:center}
+.hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 20% 10%,rgba(232,255,0,.14) 0%,transparent 55%),radial-gradient(ellipse 60% 80% at 80% 90%,rgba(255,61,106,.12) 0%,transparent 55%),radial-gradient(ellipse 100% 70% at 50% 50%,rgba(75,255,92,.06) 0%,transparent 65%),linear-gradient(180deg,#060610 0%,#121228 55%,#060610 100%);animation:heroBreath 10s ease-in-out infinite alternate}
+@keyframes heroBreath{0%{filter:brightness(1)}100%{filter:brightness(1.14)}}
+.hero-grid{position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(circle 1.5px at 1.5px 1.5px,rgba(232,255,0,.18) 100%,transparent 100%);background-size:48px 48px;animation:gridDrift 30s linear infinite;mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 40%,transparent 100%)}
+@keyframes gridDrift{to{background-position:48px 48px}}
+.blob{position:absolute;border-radius:40% 60% 70% 30%/30% 40% 60% 70%;pointer-events:none;filter:blur(60px);opacity:.18;animation:blobFloat var(--dur,12s) ease-in-out infinite alternate}
+@keyframes blobFloat{0%{transform:scale(1) rotate(0deg) translate(0,0)}100%{transform:scale(1.1) rotate(20deg) translate(15px,25px)}}
+.blob-1{width:500px;height:400px;background:var(--y);top:-100px;left:-120px;--dur:14s}
+.blob-2{width:400px;height:480px;background:var(--p);bottom:-100px;right:-80px;--dur:11s}
+.blob-3{width:350px;height:350px;background:var(--g);top:25%;left:5%;--dur:17s;opacity:.1}
+.blob-4{width:280px;height:380px;background:var(--b);top:15%;right:6%;--dur:13s;opacity:.1}
+.hero-inner{position:relative;z-index:1;max-width:880px}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:8px;background:rgba(232,255,0,.1);border:1px solid rgba(232,255,0,.35);color:var(--y);font-size:12px;letter-spacing:4px;padding:7px 20px;border-radius:999px;margin-bottom:28px;animation:fadeUp .6s ease both}
+h1{font-family:var(--orb);font-size:clamp(40px,8.5vw,96px);font-weight:900;line-height:.95;letter-spacing:-2px;background:linear-gradient(135deg,var(--y) 0%,var(--g) 35%,var(--b) 65%,var(--y) 100%);background-size:300% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 50px rgba(232,255,0,.35));animation:fadeUp .7s .1s ease both,gradFlow 6s linear infinite;margin-bottom:6px}
+@keyframes gradFlow{to{background-position:300% center}}
+.hero-sub{font-family:var(--orb);font-size:clamp(11px,1.8vw,15px);letter-spacing:8px;color:rgba(255,255,255,.4);margin-bottom:30px;animation:fadeUp .7s .18s ease both}
+.hero-desc{font-size:clamp(15px,2.2vw,20px);color:rgba(200,230,200,.8);line-height:1.9;max-width:640px;margin:0 auto 50px;animation:fadeUp .7s .26s ease both}
+.hero-desc strong{color:var(--y);font-weight:700}
+.cta-group{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;animation:fadeUp .7s .34s ease both}
+.btn-primary{display:inline-flex;align-items:center;gap:12px;background:linear-gradient(135deg,var(--y),#b8d800);color:#1a1a00;font-family:var(--orb);font-size:clamp(17px,2.5vw,22px);font-weight:700;letter-spacing:3px;padding:22px 64px;border-radius:999px;border:none;cursor:pointer;text-decoration:none;box-shadow:0 8px 0 #5a6600,0 0 60px rgba(232,255,0,.45),inset 0 2px 0 rgba(255,255,255,.35);position:relative;overflow:hidden;transition:transform .1s,box-shadow .1s}
+.btn-primary::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.28),transparent);transform:translateX(-100%);animation:shine 3.5s 1.8s ease-in-out infinite}
+@keyframes shine{0%,100%{transform:translateX(-100%);opacity:0}40%{transform:translateX(100%);opacity:1}}
+.btn-primary:hover{transform:translateY(-4px);box-shadow:0 12px 0 #5a6600,0 0 90px rgba(232,255,0,.65),inset 0 2px 0 rgba(255,255,255,.35)}
+.btn-primary:active{transform:translateY(5px);box-shadow:0 3px 0 #5a6600}
+.btn-arrow{font-size:1.4em;transition:transform .2s;display:inline-block}
+.btn-primary:hover .btn-arrow{transform:translateX(7px)}
+.btn-secondary{display:inline-flex;align-items:center;gap:8px;background:transparent;border:1.5px solid rgba(232,255,0,.4);color:var(--y);font-family:var(--orb);font-size:clamp(13px,1.8vw,16px);letter-spacing:2px;padding:20px 36px;border-radius:999px;cursor:pointer;text-decoration:none;transition:border-color .2s,background .2s,box-shadow .2s}
+.btn-secondary:hover{border-color:var(--y);background:rgba(232,255,0,.08);box-shadow:0 0 30px rgba(232,255,0,.2)}
+.hero-badges{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:28px;animation:fadeUp .7s .42s ease both}
+.badge{font-size:12px;letter-spacing:2px;color:rgba(255,255,255,.45);border:1px solid rgba(255,255,255,.12);padding:6px 16px;border-radius:999px}
+.scroll-cue{position:absolute;bottom:36px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;color:rgba(255,255,255,.2);font-size:11px;letter-spacing:3px;animation:fadeUp 1s .8s ease both}
+.scroll-line{width:1px;height:40px;background:linear-gradient(to bottom,rgba(232,255,0,.4),transparent);animation:scrollPulse 2s ease-in-out infinite}
+@keyframes scrollPulse{0%,100%{opacity:.3;transform:scaleY(.5)}50%{opacity:1;transform:scaleY(1)}}
+
+/* TICKER */
+.ticker-wrap{overflow:hidden;border-top:1px solid rgba(232,255,0,.12);border-bottom:1px solid rgba(232,255,0,.12);background:rgba(232,255,0,.04);padding:14px 0;white-space:nowrap}
+.ticker-track{display:inline-block;animation:tick 28s linear infinite}
+.ticker-track:hover{animation-play-state:paused}
+@keyframes tick{to{transform:translateX(-50%)}}
+.ticker-item{display:inline-block;font-family:var(--orb);font-size:13px;letter-spacing:3px;color:rgba(232,255,0,.55);padding:0 40px}
+.ticker-sep{color:rgba(232,255,0,.25)}
+
+/* SECTION COMMONS */
+section{padding:100px 20px}
+.inner{max-width:1140px;margin:0 auto}
+.sec-label{display:inline-block;font-size:11px;letter-spacing:5px;color:var(--y);opacity:.6;margin-bottom:12px}
+.sec-title{font-family:var(--orb);font-size:clamp(26px,4.5vw,48px);color:#fff;letter-spacing:1px;margin-bottom:16px;line-height:1.1}
+.sec-title span{color:var(--y)}
+.sec-desc{font-size:clamp(14px,1.8vw,17px);color:rgba(200,220,180,.65);line-height:1.8;max-width:560px}
+.sec-bar{width:60px;height:3px;margin:20px 0 60px;background:linear-gradient(90deg,var(--y),var(--g));border-radius:99px}
+
+/* FEATURES */
+#features{background:var(--dkk)}
+.feat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:20px}
+.feat-card{background:var(--card);border:1px solid rgba(232,255,0,.1);border-radius:24px;padding:36px 30px;position:relative;overflow:hidden;transition:transform .25s,border-color .25s,box-shadow .25s}
+.feat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--acc);opacity:.65}
+.feat-card::after{content:'';position:absolute;top:-60px;right:-60px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,var(--acc) 0%,transparent 70%);opacity:.06;transition:opacity .3s}
+.feat-card:hover{transform:translateY(-8px);border-color:rgba(232,255,0,.35);box-shadow:0 24px 70px rgba(0,0,0,.55),0 0 0 1px rgba(232,255,0,.06)}
+.feat-card:hover::after{opacity:.12}
+.feat-icon{font-size:48px;margin-bottom:20px;display:block;filter:drop-shadow(0 0 16px var(--acc))}
+.feat-card h3{font-size:21px;color:var(--acc);margin-bottom:10px;letter-spacing:.5px}
+.feat-card p{font-size:14px;color:rgba(190,210,170,.72);line-height:1.75}
+.feat-tag{display:inline-block;margin-top:16px;font-size:11px;letter-spacing:2px;padding:4px 12px;border-radius:999px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.4);border:1px solid rgba(255,255,255,.1)}
+
+/* WEAPONS */
+#weapons{background:linear-gradient(180deg,var(--dkk) 0%,rgba(10,14,20,.98) 100%);position:relative;overflow:hidden}
+#weapons::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 100% 50% at 50% 100%,rgba(232,255,0,.05) 0%,transparent 65%);pointer-events:none}
+.weapons-layout{display:grid;grid-template-columns:1fr 1.6fr;gap:60px;align-items:start}
+.weapons-list{display:flex;flex-direction:column;gap:10px}
+.w-item{display:flex;align-items:center;gap:16px;padding:14px 18px;border-radius:14px;border:1px solid rgba(255,255,255,.07);cursor:pointer;transition:all .2s;background:rgba(12,16,8,.6)}
+.w-item:hover,.w-item.active{background:rgba(30,40,10,.9);border-color:rgba(232,255,0,.4);box-shadow:0 0 20px rgba(232,255,0,.1)}
+.w-item.active{border-color:var(--y)}
+.w-rank{font-family:var(--orb);font-size:11px;letter-spacing:1px;padding:3px 8px;border-radius:6px;min-width:34px;text-align:center;font-weight:700}
+.rank-c{background:rgba(120,120,130,.3);color:#aaa}
+.rank-b{background:rgba(38,132,255,.25);color:#60aaff}
+.rank-a{background:rgba(175,82,255,.25);color:#d080ff}
+.rank-s{background:rgba(255,174,0,.25);color:#ffcc40}
+.rank-sp{background:rgba(255,61,106,.3);color:#ff6080}
+.w-name{font-size:15px;color:rgba(220,240,200,.9);flex:1}
+.w-type-tag{font-size:11px;letter-spacing:1px;color:rgba(255,255,255,.3);border:1px solid rgba(255,255,255,.1);padding:2px 8px;border-radius:99px}
+.w-detail{position:sticky;top:80px;background:rgba(12,18,6,.95);border:1px solid rgba(232,255,0,.2);border-radius:28px;padding:40px;box-shadow:0 0 60px rgba(0,0,0,.6),0 0 0 1px rgba(232,255,0,.05)}
+.wd-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:30px}
+.wd-name{font-family:var(--orb);font-size:clamp(18px,2.5vw,26px);color:var(--y);letter-spacing:1px}
+.wd-rank-badge{font-family:var(--orb);font-size:13px;letter-spacing:2px;padding:6px 16px;border-radius:999px;font-weight:700}
+.wd-stats{display:flex;flex-direction:column;gap:12px;margin-bottom:32px}
+.stat-row{display:flex;align-items:center;gap:12px}
+.stat-label{font-size:12px;color:rgba(255,255,255,.4);letter-spacing:1px;min-width:76px}
+.stat-bar-wrap{flex:1;height:6px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden}
+.stat-bar{height:100%;border-radius:99px;transition:width .5s cubic-bezier(.23,1,.32,1)}
+.stat-val{font-family:var(--orb);font-size:13px;min-width:36px;text-align:right;color:rgba(255,255,255,.7)}
+.wd-desc{font-size:14px;color:rgba(180,210,160,.7);line-height:1.75;margin-bottom:28px}
+.wd-tags{display:flex;flex-wrap:wrap;gap:8px}
+.wd-tag{font-size:11px;letter-spacing:1.5px;padding:5px 14px;border-radius:999px;border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.5)}
+
+/* STATS */
+#stats{padding:70px 20px;border-top:1px solid rgba(232,255,0,.08);border-bottom:1px solid rgba(232,255,0,.08);background:rgba(232,255,0,.025)}
+.stats-row{display:flex;flex-wrap:wrap;justify-content:center;gap:60px}
+.stat-item{text-align:center}
+.stat-big{font-family:var(--orb);font-size:clamp(40px,6vw,64px);font-weight:900;color:var(--y);display:block;filter:drop-shadow(0 0 24px rgba(232,255,0,.45))}
+.stat-lbl{font-size:12px;letter-spacing:3px;color:rgba(255,255,255,.35);margin-top:4px}
+
+/* MODES */
+#modes{background:linear-gradient(180deg,var(--dkk) 0%,rgba(8,12,6,.98) 100%);overflow:hidden;position:relative}
+.modes-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
+.mode-card{border-radius:24px;padding:36px 28px;position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.08);transition:transform .25s,box-shadow .25s}
+.mode-card::before{content:'';position:absolute;bottom:-40px;right:-40px;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,var(--mc) 0%,transparent 70%);opacity:.15;transition:opacity .3s,transform .3s}
+.mode-card:hover{transform:translateY(-6px)}
+.mode-card:hover::before{opacity:.28;transform:scale(1.15)}
+.mode-card .m-icon{font-size:52px;margin-bottom:18px;display:block;filter:drop-shadow(0 0 20px var(--mc))}
+.mode-card h3{font-family:var(--orb);font-size:18px;color:var(--mc);margin-bottom:10px;letter-spacing:1px}
+.mode-card p{font-size:14px;color:rgba(190,210,170,.7);line-height:1.7}
+.mode-badge{display:inline-block;margin-top:14px;font-size:10px;letter-spacing:2px;padding:4px 12px;border-radius:999px;border:1px solid var(--mc);color:var(--mc);opacity:.7}
+.m-solo{background:linear-gradient(145deg,rgba(18,28,6,.95),rgba(10,18,4,.98));--mc:var(--g)}
+.m-online{background:linear-gradient(145deg,rgba(10,20,34,.95),rgba(6,14,28,.98));--mc:var(--b)}
+.m-team{background:linear-gradient(145deg,rgba(28,8,14,.95),rgba(18,4,8,.98));--mc:var(--p)}
+.m-boss{background:linear-gradient(145deg,rgba(28,16,4,.95),rgba(18,10,2,.98));--mc:var(--o)}
+
+/* GACHA */
+#gacha{background:var(--dkk);position:relative;overflow:hidden}
+#gacha::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 50% 0%,rgba(175,82,255,.08) 0%,transparent 60%)}
+.rarity-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-top:10px}
+.rarity-card{border-radius:16px;padding:20px 16px;text-align:center;position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.1);transition:transform .2s,box-shadow .2s}
+.rarity-card:hover{transform:translateY(-4px)}
+.rarity-card .r-name{font-family:var(--orb);font-size:13px;letter-spacing:1px;margin-bottom:4px}
+.rarity-card .r-stars{font-size:18px;font-weight:900;margin-bottom:6px;letter-spacing:-1px}
+.rarity-card .r-desc{font-size:11px;color:rgba(255,255,255,.5);letter-spacing:.5px}
+.r-common{background:rgba(120,120,130,.15);border-color:rgba(160,160,170,.2);color:#ccc}
+.r-rare{background:rgba(38,132,255,.15);border-color:rgba(60,150,255,.25);color:#80c0ff}
+.r-epic{background:rgba(175,82,255,.18);border-color:rgba(200,100,255,.3);color:#d090ff}
+.r-legend{background:rgba(255,174,0,.15);border-color:rgba(255,200,50,.3);color:#ffc040}
+.r-mythic{background:rgba(255,0,128,.18);border-color:rgba(255,80,180,.3);color:#ff70d0;animation:mythicP 2s ease-in-out infinite alternate}
+.r-divine{background:rgba(0,200,255,.15);border-color:rgba(0,220,255,.3);color:#40e0ff;animation:divineP 1.5s ease-in-out infinite alternate}
+.r-apex{background:rgba(255,80,0,.18);border-color:rgba(255,140,0,.35);color:#ff9040;animation:apexP 1.2s ease-in-out infinite alternate}
+.r-cosmic{background:rgba(150,0,255,.2);border-color:rgba(200,0,255,.35);color:#cc60ff;animation:cosmicP 1s ease-in-out infinite alternate}
+.r-omnigod{background:linear-gradient(135deg,rgba(255,255,255,.18),rgba(255,220,0,.18));border-color:rgba(255,255,255,.5);animation:omnigodP .8s ease-in-out infinite alternate}
+@keyframes mythicP{to{box-shadow:0 0 20px rgba(255,0,128,.3)}}
+@keyframes divineP{to{box-shadow:0 0 22px rgba(0,220,255,.3)}}
+@keyframes apexP{to{box-shadow:0 0 22px rgba(255,100,0,.3)}}
+@keyframes cosmicP{to{box-shadow:0 0 24px rgba(200,0,255,.35)}}
+@keyframes omnigodP{to{box-shadow:0 0 30px rgba(255,255,200,.4)}}
+
+/* HOWTO */
+#howto{background:var(--dkk)}
+.steps{display:flex;flex-direction:column;gap:1px}
+.step{display:flex;gap:36px;align-items:flex-start;padding:36px 0;border-bottom:1px solid rgba(255,255,255,.06);transition:padding .2s}
+.step:last-child{border-bottom:none}
+.step:hover{padding-left:12px}
+.step-left{display:flex;flex-direction:column;align-items:center}
+.step-num{font-family:var(--orb);font-size:48px;font-weight:900;color:var(--y);opacity:.15;line-height:1;min-width:68px;text-align:center;transition:opacity .3s}
+.step:hover .step-num{opacity:.4}
+.step-line{flex:1;width:1px;background:rgba(232,255,0,.08);min-height:20px;margin-top:6px}
+.step-body h4{font-family:var(--orb);font-size:18px;color:#fff;margin-bottom:10px;letter-spacing:.5px}
+.step-body p{font-size:14px;color:rgba(190,210,165,.7);line-height:1.8}
+.step-body code{background:rgba(232,255,0,.1);color:var(--y);padding:2px 8px;border-radius:6px;font-family:monospace;font-size:13px}
+
+/* BOTTOM CTA */
+#cta-bottom{padding:120px 20px;text-align:center;position:relative;overflow:hidden;background:var(--dkk)}
+#cta-bottom::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 70% at 50% 50%,rgba(232,255,0,.07) 0%,transparent 65%),radial-gradient(ellipse 40% 40% at 50% 50%,rgba(75,255,92,.04) 0%,transparent 50%);pointer-events:none}
+.cta-ring{position:absolute;border-radius:50%;border:1px solid rgba(232,255,0,.06);top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none}
+.cta-ring-1{width:400px;height:400px}
+.cta-ring-2{width:650px;height:650px;opacity:.6}
+.cta-ring-3{width:900px;height:900px;opacity:.35}
+.cta-bottom-inner{position:relative;z-index:1}
+.cta-big{font-family:var(--orb);font-size:clamp(28px,5vw,58px);font-weight:900;color:#fff;margin-bottom:12px;letter-spacing:-1px}
+.cta-big span{color:var(--y)}
+.cta-sub{font-size:clamp(14px,2vw,17px);color:rgba(255,255,255,.4);letter-spacing:2px;margin-bottom:50px}
+
+/* FOOTER */
+footer{padding:32px 40px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid rgba(255,255,255,.07)}
+.footer-logo{font-family:var(--orb);font-size:14px;color:rgba(232,255,0,.6);letter-spacing:3px}
+.footer-links{display:flex;gap:24px}
+.footer-links a{font-size:13px;color:rgba(255,255,255,.3);text-decoration:none;letter-spacing:1px;transition:color .2s}
+.footer-links a:hover{color:var(--y)}
+.footer-copy{font-size:12px;color:rgba(255,255,255,.2)}
+
+/* ANIMATIONS */
+@keyframes fadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
+.reveal{opacity:0;transform:translateY(32px);transition:opacity .65s ease,transform .65s ease}
+.reveal.in{opacity:1;transform:none}
+.reveal-stagger>*{opacity:0;transform:translateY(24px);transition:opacity .55s ease,transform .55s ease}
+.reveal-stagger.in>*:nth-child(1){opacity:1;transform:none;transition-delay:.00s}
+.reveal-stagger.in>*:nth-child(2){opacity:1;transform:none;transition-delay:.08s}
+.reveal-stagger.in>*:nth-child(3){opacity:1;transform:none;transition-delay:.16s}
+.reveal-stagger.in>*:nth-child(4){opacity:1;transform:none;transition-delay:.24s}
+.reveal-stagger.in>*:nth-child(5){opacity:1;transform:none;transition-delay:.32s}
+.reveal-stagger.in>*:nth-child(6){opacity:1;transform:none;transition-delay:.40s}
+.reveal-stagger.in>*:nth-child(7){opacity:1;transform:none;transition-delay:.48s}
+.reveal-stagger.in>*:nth-child(8){opacity:1;transform:none;transition-delay:.56s}
+.reveal-stagger.in>*:nth-child(9){opacity:1;transform:none;transition-delay:.64s}
+
+/* NOTICE MODAL */
+#notice-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);backdrop-filter:blur(6px);z-index:10000;display:flex;align-items:center;justify-content:center;animation:fadeIn .3s ease both}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+#notice-modal{background:rgba(10,12,22,.97);border:1px solid rgba(232,255,0,.25);border-radius:24px;padding:44px 40px 36px;max-width:520px;width:calc(100% - 40px);position:relative;box-shadow:0 0 80px rgba(0,0,0,.8),0 0 0 1px rgba(232,255,0,.08);animation:modalUp .35s cubic-bezier(.23,1,.32,1) both}
+@keyframes modalUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
+#notice-modal::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--y),var(--g));border-radius:24px 24px 0 0}
+.notice-icon{font-size:32px;margin-bottom:14px}
+.notice-title{font-family:var(--orb);font-size:20px;color:var(--y);letter-spacing:2px;margin-bottom:18px}
+.notice-body{font-size:14px;color:rgba(200,220,180,.8);line-height:1.9}
+.notice-close{position:absolute;top:16px;right:16px;width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:rgba(255,255,255,.6);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s,color .2s,border-color .2s}
+.notice-close:hover{background:rgba(232,255,0,.15);border-color:rgba(232,255,0,.4);color:var(--y)}
+.notice-btn{display:inline-flex;align-items:center;justify-content:center;margin-top:28px;width:100%;background:var(--y);color:#1a1a00;font-family:var(--orb);font-size:14px;font-weight:700;letter-spacing:2px;padding:14px 24px;border-radius:999px;border:none;cursor:pointer;box-shadow:0 4px 0 #5a6600,0 0 20px rgba(232,255,0,.3);transition:transform .1s,box-shadow .1s}
+.notice-btn:hover{transform:translateY(-2px);box-shadow:0 6px 0 #5a6600,0 0 40px rgba(232,255,0,.5)}
+.notice-btn:active{transform:translateY(3px);box-shadow:0 1px 0 #5a6600}
+
+@media(max-width:768px){
+  nav{padding:0 20px}
+  .weapons-layout{grid-template-columns:1fr}
+  .w-detail{position:static}
+  .step{gap:20px}
+  .step-num{font-size:32px;min-width:48px}
+  body{cursor:auto}
+  #cur,#cur-ring{display:none}
+  footer{flex-direction:column;align-items:flex-start}
+}
+@media(max-width:480px){
+  .btn-primary{padding:18px 36px;font-size:16px}
+  .cta-group{flex-direction:column;align-items:center}
+}
+</style>
+</head>
+<body>
+
+<div id="cur"></div>
+<div id="cur-ring"></div>
+
+<!-- NOTICE MODAL -->
+<div id="notice-overlay">
+  <div id="notice-modal" role="dialog" aria-modal="true" aria-labelledby="notice-title">
+    <button class="notice-close" id="notice-close-btn" aria-label="閉じる">✕</button>
+    <div class="notice-icon">📢</div>
+    <div class="notice-title" id="notice-title">お知らせ</div>
+    <div class="notice-body">平素より本ゲームをご利用いただきありがとうございます。<br><br>この度のアップデートにおいて、一部ユーザー様のプレイ履歴が消失する不具合が発生いたしました。<br><br>ご迷惑をおかけしましたことを深くお詫び申し上げます。<br><br>現在、復旧対応を進めております。詳細は追ってご案内いたします。</div>
+    <div style="display:flex;gap:12px;margin-top:28px">
+      <a href="https://morning-butterfly-8dd3.sv21108462025sabuaka.workers.dev/" target="_self" class="notice-btn" style="flex:1;text-decoration:none;background:transparent;border:1.5px solid rgba(232,255,0,.4);color:var(--y);box-shadow:none">復元する</a>
+      <button class="notice-btn" id="notice-ok-btn" style="flex:1;margin-top:0">復元しない</button>
+    </div>
+    <label id="notice-never-label" style="display:flex;align-items:center;gap:10px;margin-top:16px;cursor:pointer;user-select:none;padding:10px 14px;border-radius:12px;border:1.5px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);transition:border-color .2s,background .2s">
+      <span id="notice-never-box" style="width:22px;height:22px;min-width:22px;border-radius:6px;border:2px solid rgba(255,255,255,.25);background:transparent;display:flex;align-items:center;justify-content:center;transition:all .2s;font-size:14px"></span>
+      <span style="font-size:13px;letter-spacing:1px;color:rgba(255,255,255,.5);transition:color .2s" id="notice-never-text">2度と表示しない</span>
+      <input type="checkbox" id="notice-never-chk" style="display:none">
+    </label>
+  </div>
+</div>
+
+<nav id="nav">
+  <div class="nav-logo">INK BATTLE 3D</div>
+  <a href="https://home-3ex.pages.dev/" class="nav-cta" target="_self">今すぐプレイ</a>
+</nav>
+
+<section id="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+  <div class="blob blob-4"></div>
+  <div class="hero-inner">
+    <div class="hero-eyebrow">🦑&nbsp; ブラウザで無料プレイ</div>
+    <h1>INK BATTLE<br>3D EVOLUTION</h1>
+    <p class="hero-sub">SPLAT · CONQUER · EVOLVE</p>
+    <p class="hero-desc">
+      インクを塗り陣地を広げる、<strong>本格スプラ風3Dシューティング</strong>。<br>
+      30種以上の武器・9段階ガチャ・リアルタイムマルチ対戦まで全部無料。<br>
+      インストール不要、ブラウザで今すぐ遊べる。
+    </p>
+    <div class="cta-group">
+      <a href="https://home-3ex.pages.dev/" class="btn-primary" target="_self">今すぐ試してみる <span class="btn-arrow">→</span></a>
+      <a href="#features" class="btn-secondary">ゲーム詳細を見る</a>
+    </div>
+    <div class="hero-badges">
+      <span class="badge">⚡ インストール不要</span>
+      <span class="badge">🆓 完全無料</span>
+      <span class="badge">🖥 PC対応</span>
+      <span class="badge">🌐 オンライン対戦</span>
+      <span class="badge">🎰 ガチャ搭載</span>
+    </div>
+  </div>
+  <div class="scroll-cue">
+    <div class="scroll-line"></div>
+    SCROLL
+  </div>
+</section>
+
+<div class="ticker-wrap">
+  <div class="ticker-track">
+    <span class="ticker-item">わかばシューター</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">スプラローラー</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">ホットブラスター</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">スクイックリン</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">スプラチャージャー</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">ダイナモローラー</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">4Kスコープ</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">神の筆</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">SKILL GACHA</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">オンライン対戦</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">ボス討伐</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">アバターカスタマイズ</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">わかばシューター</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">スプラローラー</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">ホットブラスター</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">スクイックリン</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">スプラチャージャー</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">ダイナモローラー</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">4Kスコープ</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">神の筆</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">SKILL GACHA</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">オンライン対戦</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">ボス討伐</span><span class="ticker-sep">✦</span>
+    <span class="ticker-item">アバターカスタマイズ</span><span class="ticker-sep">✦</span>
+  </div>
+</div>
+
+<section id="features">
+  <div class="inner">
+    <div class="reveal">
+      <span class="sec-label">Features</span>
+      <h2 class="sec-title">なぜ INK BATTLE<span> 3D</span> なのか</h2>
+      <p class="sec-desc">ブラウザゲームの枠を超えた本格3Dアクション。これだけの要素が全部無料。</p>
+      <div class="sec-bar"></div>
+    </div>
+    <div class="feat-grid reveal-stagger">
+      <div class="feat-card" style="--acc:var(--y)">
+        <span class="feat-icon">🖌️</span>
+        <h3>リアルタイムインク塗り</h3>
+        <p>Three.jsで構築された本格3Dフィールドをインクで染め上げろ。射撃するたびに地面に広がる鮮やかなインク。陣地面積がスコアを直接左右する戦略性。</p>
+        <span class="feat-tag">THREE.JS 3D ENGINE</span>
+      </div>
+      <div class="feat-card" style="--acc:var(--g)">
+        <span class="feat-icon">🌐</span>
+        <h3>P2Pオンラインマルチ</h3>
+        <p>PeerJSを使ったリアルタイムP2Pマルチプレイ。世界中のプレイヤーとフリーマッチ対戦。ゲーム内チャットとクイックメッセージで仲間と連携。</p>
+        <span class="feat-tag">PEERJS MULTIPLAYER</span>
+      </div>
+      <div class="feat-card" style="--acc:var(--v)">
+        <span class="feat-icon">🎰</span>
+        <h3>9段階ガチャシステム</h3>
+        <p>Common〜OMNIGOD まで9つのレアリティ。バトルで稼いだコインを注ぎ込んで最強スキルをコレクション。獲得したスキルは永久保存。</p>
+        <span class="feat-tag">SKILL COLLECTION</span>
+      </div>
+      <div class="feat-card" style="--acc:var(--b)">
+        <span class="feat-icon">🔫</span>
+        <h3>30種超の武器＆ランク制</h3>
+        <p>C〜S+ランクに対応した30種以上の武器。ローラー・チャージャー・ブラスター・スピナー等、プレイスタイルに合わせて使い分けろ。</p>
+        <span class="feat-tag">30+ WEAPONS</span>
+      </div>
+      <div class="feat-card" style="--acc:var(--o)">
+        <span class="feat-icon">🐲</span>
+        <h3>ボスバトル＆デイリー</h3>
+        <p>体力バー付き巨大ボスとの激闘。毎日リセットされるデイリークエストでコインと限定報酬を獲得。毎日遊びたくなるやり込み要素満載。</p>
+        <span class="feat-tag">DAILY QUESTS</span>
+      </div>
+      <div class="feat-card" style="--acc:var(--p)">
+        <span class="feat-icon">🎭</span>
+        <h3>アバターカスタマイズ</h3>
+        <p>キャラの色・形状を自由に変更。カプセル・スター・ハート・イカなど個性的シェイプから選択。コインで200種以上の組み合わせが楽しめる。</p>
+        <span class="feat-tag">AVATAR CREATOR</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="weapons">
+  <div class="inner">
+    <div class="reveal">
+      <span class="sec-label">Arsenal</span>
+      <h2 class="sec-title">武器ラインナップ<span> — 30種以上</span></h2>
+      <p class="sec-desc">C〜S+のランク制で解禁される多彩な武器。クリックしてスペックを確認しよう。</p>
+      <div class="sec-bar"></div>
+    </div>
+    <div class="weapons-layout reveal">
+      <div class="weapons-list" id="wlist"></div>
+      <div class="w-detail" id="wdetail">
+        <div class="wd-header">
+          <div class="wd-name" id="wd-name">—</div>
+          <div class="wd-rank-badge rank-c" id="wd-rank">—</div>
+        </div>
+        <div class="wd-stats" id="wd-stats"></div>
+        <p class="wd-desc" id="wd-desc"></p>
+        <div class="wd-tags" id="wd-tags"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="stats">
+  <div class="inner">
+    <div class="stats-row reveal-stagger">
+      <div class="stat-item"><span class="stat-big" data-count="30">0</span><div class="stat-lbl">WEAPONS</div></div>
+      <div class="stat-item"><span class="stat-big" data-count="9">0</span><div class="stat-lbl">RARITY TIERS</div></div>
+      <div class="stat-item"><span class="stat-big" data-count="4">0</span><div class="stat-lbl">GAME MODES</div></div>
+      <div class="stat-item"><span class="stat-big">¥0</span><div class="stat-lbl">COST TO PLAY</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="modes">
+  <div class="inner">
+    <div class="reveal">
+      <span class="sec-label">Game Modes</span>
+      <h2 class="sec-title">4つの<span>ゲームモード</span></h2>
+      <p class="sec-desc">ソロ練習からガチマルチまで。あなたのスタイルで戦え。</p>
+      <div class="sec-bar"></div>
+    </div>
+    <div class="modes-grid reveal-stagger">
+      <div class="mode-card m-solo">
+        <span class="m-icon">⚔️</span>
+        <h3>ソロバトル</h3>
+        <p>AIと1対多のインク塗り合戦。難易度・武器・マップを自由設定してスキルを磨け。スペシャルスキルを駆使して高スコアを狙おう。</p>
+        <span class="mode-badge">OFFLINE OK</span>
+      </div>
+      <div class="mode-card m-online">
+        <span class="m-icon">🌍</span>
+        <h3>オンライン対戦</h3>
+        <p>フリーマッチでリアルプレイヤーと激突。P2P接続によるリアルタイムバトル。ゲーム内チャットで仲間とコミュニケーション。</p>
+        <span class="mode-badge">REAL-TIME PVP</span>
+      </div>
+      <div class="mode-card m-team">
+        <span class="m-icon">👥</span>
+        <h3>チームバトル</h3>
+        <p>AlphaチームvsBravoチームの陣取り合戦。インク占有率で勝敗が決まる。仲間との連携が勝利のカギ。</p>
+        <span class="mode-badge">TEAM VS TEAM</span>
+      </div>
+      <div class="mode-card m-boss">
+        <span class="m-icon">🐉</span>
+        <h3>ボス討伐</h3>
+        <p>HPバー付き超強力ボスとの激闘。スペシャル発動タイミングが攻略の肝。撃破で大量コインとレアドロップをゲット。</p>
+        <span class="mode-badge">BOSS RAID</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="gacha">
+  <div class="inner">
+    <div class="reveal">
+      <span class="sec-label">Gacha</span>
+      <h2 class="sec-title">SKILL GACHA<span> — 9段階レアリティ</span></h2>
+      <p class="sec-desc">コインを注ぎ込んでスキルカードを集めよう。最高レアリティ「OMNIGOD」を引き当てれば伝説のプレイヤーへ。</p>
+      <div class="sec-bar"></div>
+    </div>
+    <div class="rarity-grid reveal-stagger">
+      <div class="rarity-card r-common"><div class="r-name">COMMON</div><div class="r-stars">★</div><div class="r-desc">基本スキル</div></div>
+      <div class="rarity-card r-rare"><div class="r-name">RARE</div><div class="r-stars">★★</div><div class="r-desc">強化スキル</div></div>
+      <div class="rarity-card r-epic"><div class="r-name">EPIC</div><div class="r-stars">★★★</div><div class="r-desc">特殊スキル</div></div>
+      <div class="rarity-card r-legend"><div class="r-name">LEGEND</div><div class="r-stars">★★★★</div><div class="r-desc">レジェンド級</div></div>
+      <div class="rarity-card r-mythic"><div class="r-name">MYTHIC</div><div class="r-stars">✦✦✦✦✦</div><div class="r-desc">神話スキル</div></div>
+      <div class="rarity-card r-divine"><div class="r-name">DIVINE</div><div class="r-stars">✦✦✦✦✦✦</div><div class="r-desc">神聖スキル</div></div>
+      <div class="rarity-card r-apex"><div class="r-name">APEX</div><div class="r-stars">✦✦✦✦✦✦✦</div><div class="r-desc">頂点スキル</div></div>
+      <div class="rarity-card r-cosmic"><div class="r-name">COSMIC</div><div class="r-stars">✦✦✦✦✦✦✦✦</div><div class="r-desc">宇宙スキル</div></div>
+      <div class="rarity-card r-omnigod"><div class="r-name" style="color:#1a1a00">OMNIGOD</div><div class="r-stars" style="color:#1a1a00;font-size:22px">∞</div><div class="r-desc" style="color:#555">究極の伝説</div></div>
+    </div>
+  </div>
+</section>
+
+<section id="howto">
+  <div class="inner">
+    <div class="reveal">
+      <span class="sec-label">How to Play</span>
+      <h2 class="sec-title">今すぐ始める<span> — 4ステップ</span></h2>
+      <p class="sec-desc">登録不要。ブラウザを開けばすぐ戦場へ。</p>
+      <div class="sec-bar"></div>
+    </div>
+    <div class="steps reveal">
+      <div class="step">
+        <div class="step-left"><div class="step-num">01</div><div class="step-line"></div></div>
+        <div class="step-body">
+          <h4>ブラウザで開く</h4>
+          <p>インストール不要。PCのブラウザで <code>ai-573.pages.dev</code> を開くだけ。数秒でゲーム画面が起動。アカウント登録するとデータが永続保存されます（任意）。</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-left"><div class="step-num">02</div><div class="step-line"></div></div>
+        <div class="step-body">
+          <h4>武器とモードを選ぶ</h4>
+          <p>ホーム画面から武器を選択。初心者は <code>わかばシューター</code> がおすすめ。ソロ・オンライン・ボス戦のモードを選んで BATTLE START！</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-left"><div class="step-num">03</div><div class="step-line"></div></div>
+        <div class="step-body">
+          <h4>インクを撒いて戦え</h4>
+          <p>マウス操作で視点を動かし、クリックで射撃。フィールドを自分のインクで塗り尽くしながら、スペシャルゲージを溜めて強力なスキルを発動しよう。</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-left"><div class="step-num">04</div></div>
+        <div class="step-body">
+          <h4>コインで強化 &amp; ガチャ</h4>
+          <p>バトルで稼いだコインで武器をアップグレード。ガチャでスキルを集め、デイリークエストをこなしてさらに強くなれ！</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="cta-bottom">
+  <div class="cta-ring cta-ring-1"></div>
+  <div class="cta-ring cta-ring-2"></div>
+  <div class="cta-ring cta-ring-3"></div>
+  <div class="cta-bottom-inner">
+    <h2 class="cta-big reveal">さあ、<span>インクをぶちまけろ！</span></h2>
+    <p class="cta-sub reveal">登録不要 · 完全無料 · 今この瞬間から</p>
+    <div class="reveal">
+      <a href="https://home-3ex.pages.dev/" class="btn-primary" target="_self" style="font-size:clamp(18px,2.8vw,26px);padding:26px 80px">
+        🦑 今すぐ試してみる <span class="btn-arrow">→</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-logo">INK BATTLE 3D EVOLUTION</div>
+  <div class="footer-links">
+    <a href="https://home-3ex.pages.dev/" target="_self">プレイ</a>
+    <a href="#features">特徴</a>
+    <a href="#weapons">武器</a>
+    <a href="#modes">モード</a>
+    <a href="#gacha">ガチャ</a>
+  </div>
+  <div class="footer-copy">© 2025 INK BATTLE 3D — ai-573.pages.dev</div>
+</footer>
+
+<script>
+/* HOME-3EX VISIT TRACKING */
+document.querySelectorAll('a[href*="home-3ex.pages.dev"]').forEach(function(a){
+  a.addEventListener('click', function(){
+    localStorage.setItem('visited_home3ex', '1');
+  });
+});
+
+/* NOTICE MODAL */
+(function(){
+  const overlay = document.getElementById('notice-overlay');
+  if(localStorage.getItem('notice_dismissed_forever') === '1'){
+    overlay.style.display = 'none';
+    return;
+  }
+  // チェックボックス見た目トグル
+  const label = document.getElementById('notice-never-label');
+  const box = document.getElementById('notice-never-box');
+  const txt = document.getElementById('notice-never-text');
+  const chk = document.getElementById('notice-never-chk');
+  label.addEventListener('click', function(){
+    chk.checked = !chk.checked;
+    if(chk.checked){
+      box.style.background = 'var(--y)';
+      box.style.borderColor = 'var(--y)';
+      box.style.boxShadow = '0 0 10px rgba(232,255,0,.5)';
+      box.textContent = '✓';
+      label.style.borderColor = 'rgba(232,255,0,.5)';
+      label.style.background = 'rgba(232,255,0,.08)';
+      txt.style.color = 'var(--y)';
+    } else {
+      box.style.background = 'transparent';
+      box.style.borderColor = 'rgba(255,255,255,.25)';
+      box.style.boxShadow = 'none';
+      box.textContent = '';
+      label.style.borderColor = 'rgba(255,255,255,.1)';
+      label.style.background = 'rgba(255,255,255,.04)';
+      txt.style.color = 'rgba(255,255,255,.5)';
+    }
+  });
+  function closeModal(){
+    if(chk.checked) localStorage.setItem('notice_dismissed_forever', '1');
+    overlay.style.animation = 'fadeIn .2s ease reverse both';
+    setTimeout(function(){ overlay.style.display = 'none'; }, 200);
+    if(localStorage.getItem('visited_home3ex') === '1'){
+      setTimeout(function(){ location.replace('https://home-3ex.pages.dev/'); }, 220);
+    }
+  }
+  document.getElementById('notice-close-btn').addEventListener('click', closeModal);
+  document.getElementById('notice-ok-btn').addEventListener('click', closeModal);
+  overlay.addEventListener('click', function(e){ if(e.target === overlay) closeModal(); });
+})();
+
+/* CURSOR */
+const cur=document.getElementById('cur'),ring=document.getElementById('cur-ring');
+let mx=0,my=0,rx=0,ry=0;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px'});
+(function lerp(){rx+=(mx-rx)*.12;ry+=(my-ry)*.12;ring.style.left=rx+'px';ring.style.top=ry+'px';requestAnimationFrame(lerp)})();
+document.querySelectorAll('a,button').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{cur.classList.add('big');ring.classList.add('big')});
+  el.addEventListener('mouseleave',()=>{cur.classList.remove('big');ring.classList.remove('big')});
+});
+
+/* NAV SCROLL */
+window.addEventListener('scroll',()=>{
+  document.getElementById('nav').style.background=window.scrollY>40?'rgba(6,6,16,.95)':'rgba(6,6,16,.75)';
+});
+
+/* SCROLL REVEAL */
+const io=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}});
+},{threshold:.12});
+document.querySelectorAll('.reveal,.reveal-stagger').forEach(el=>io.observe(el));
+
+/* COUNTER */
+function countUp(el,target){
+  let start=null;
+  const step=ts=>{
+    if(!start)start=ts;
+    const p=Math.min((ts-start)/1400,1);
+    const ease=1-Math.pow(1-p,3);
+    el.textContent=Math.round(ease*target)+(target===30?'+':'');
+    if(p<1)requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+const cio=new IntersectionObserver(entries=>{
+  entries.forEach(e=>{
+    if(e.isIntersecting){
+      e.target.querySelectorAll('[data-count]').forEach(el=>countUp(el,parseInt(el.dataset.count)));
+      cio.unobserve(e.target);
+    }
+  });
+},{threshold:.3});
+document.querySelectorAll('#stats').forEach(el=>cio.observe(el));
+
+/* WEAPONS */
+const WEAPONS=[
+  {name:'わかばシューター',rank:'C-',rankCls:'rank-c',type:'シューター',auto:true,
+   stats:{速度:50,連射:72,塗り:40,ダメ:30},
+   desc:'スタンダードなシューター。扱いやすくインク効率抜群。バランス型で初心者に最適な入門武器。'},
+  {name:'スプラローラー',rank:'C-',rankCls:'rank-c',type:'ローラー',auto:false,
+   stats:{速度:55,連射:28,塗り:70,ダメ:78},
+   desc:'広範囲にインクを塗り広げるローラー。近距離は特に高ダメージ。前線突破型のプレイスタイルに。'},
+  {name:'スクイックリン',rank:'C+',rankCls:'rank-c',type:'チャージャー',auto:false,
+   stats:{速度:45,連射:40,塗り:52,ダメ:95},
+   desc:'高速チャージで一撃必殺を狙えるチャージャー。弾速4.0で遠距離も圧倒。中級者向け武器。'},
+  {name:'バレルスピナー',rank:'B-',rankCls:'rank-b',type:'スピナー',auto:true,
+   stats:{速度:30,連射:78,塗り:52,ダメ:55},
+   desc:'スピナー系で高い連射力。高速弾でフィールドを制圧。立ち回りが重要な中距離制圧武器。'},
+  {name:'スプラシューター',rank:'B',rankCls:'rank-b',type:'シューター',auto:true,
+   stats:{速度:52,連射:78,塗り:46,ダメ:42},
+   desc:'スプラトゥーンの代名詞的シューター。高バランスで扱いやすい。ランクBから解禁の王道武器。'},
+  {name:'スプラチャージャー',rank:'A+',rankCls:'rank-a',type:'チャージャー',auto:false,
+   stats:{速度:22,連射:15,塗り:62,ダメ:98},
+   desc:'高ダメージ・超遠射程の本格チャージャー。フルチャージ300ダメで1撃確殺。上級者専用。'},
+  {name:'ハイドラント',rank:'A+',rankCls:'rank-a',type:'スピナー',auto:true,
+   stats:{速度:12,連射:96,塗り:46,ダメ:88},
+   desc:'最高の連射力を誇る。ダメージ150を超高レートで叩き込む最強スピナー。移動速度は犠牲になる。'},
+  {name:'4Kスコープ',rank:'S-',rankCls:'rank-s',type:'チャージャー',auto:false,
+   stats:{速度:8,連射:8,塗り:56,ダメ:100},
+   desc:'最高クラスの遠射程と550ダメージ。弾速12.0で当たれば即死。S-ランク到達者のみ使用可能。'},
+  {name:'神の筆',rank:'S+',rankCls:'rank-sp',type:'特殊武器',auto:true,
+   stats:{速度:80,連射:99,塗り:100,ダメ:100},
+   desc:'S+限定の伝説武器。ダメージ999・塗りサイズ10・超高連射。1億コイン必要だが圧倒的な力を誇る。'},
+];
+const statColors={速度:'#4bff5c',連射:'#00b0ff',塗り:'#e8ff00',ダメ:'#ff3d6a'};
+function renderW(w){
+  document.getElementById('wd-name').textContent=w.name;
+  const rb=document.getElementById('wd-rank');
+  rb.textContent=w.rank;rb.className='wd-rank-badge '+w.rankCls;
+  document.getElementById('wd-desc').textContent=w.desc;
+  document.getElementById('wd-stats').innerHTML=Object.entries(w.stats).map(([k,v])=>
+    `<div class="stat-row"><span class="stat-label">${k}</span><div class="stat-bar-wrap"><div class="stat-bar" style="width:${v}%;background:${statColors[k]||'#e8ff00'}"></div></div><span class="stat-val">${v}</span></div>`
+  ).join('');
+  document.getElementById('wd-tags').innerHTML=
+    `<span class="wd-tag">${w.type}</span><span class="wd-tag">${w.auto?'オート':'マニュアル'}</span><span class="wd-tag">ランク ${w.rank}</span>`;
+}
+const wlist=document.getElementById('wlist');
+WEAPONS.forEach((w,i)=>{
+  const el=document.createElement('div');
+  el.className='w-item'+(i===0?' active':'');
+  el.innerHTML=`<span class="w-rank ${w.rankCls}">${w.rank}</span><span class="w-name">${w.name}</span><span class="w-type-tag">${w.type}</span>`;
+  el.addEventListener('click',()=>{
+    document.querySelectorAll('.w-item').forEach(x=>x.classList.remove('active'));
+    el.classList.add('active');renderW(w);
+  });
+  wlist.appendChild(el);
+});
+renderW(WEAPONS[0]);
+</script>
+</body>
+</html>
